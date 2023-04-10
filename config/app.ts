@@ -1,5 +1,5 @@
-import createError, {HttpError} from 'http-errors';
-import express, {NextFunction} from 'express';
+ import createError, {HttpError} from 'http-errors';
+ import express, {NextFunction} from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
@@ -13,7 +13,9 @@ const app = express();
 
 //add the database connection information
 import  * as DBConfig from './db';
-mongoose.connect(DBConfig.localURI);
+import {remoteURI} from "./db";
+//mongoose.connect(DBConfig.localURI);
+mongoose.connect(DBConfig.remoteURI);
 const db = mongoose.connection;
 
 db.on("error", function (){
