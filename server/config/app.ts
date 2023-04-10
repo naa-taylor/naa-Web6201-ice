@@ -4,26 +4,35 @@ import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import mongoose from 'mongoose';
-
-
+import passport from 'passport';
+import session from 'express-session';
+import passportLocal from 'passport-local';
+import flash from 'connect-flash'
 import indexRouter from '../routes';
 import usersRouter from '../routes/users';
+ import User from '../models/user';
+
 
 const app = express();
+ const LocalStrategy = passportLocal.Strategy;
 
 //add the database connection information
 import  * as DBConfig from './db';
 import {remoteURI} from "./db";
-//mongoose.connect(DBConfig.localURI);
-mongoose.connect(DBConfig.remoteURI);
+mongoose.connect(DBConfig.localURI);
+//mongoose.connect(DBConfig.remoteURI);
 const db = mongoose.connection;
-
 db.on("error", function (){
   console.error("Connection Error!");
 });
 db.once("open", function (){
   console.log(`Connected to MongoDB at ${DBConfig.HostName}`);
 });
+
+ // Configure passport
+ passport.use(new LocalStrategy(User.authenticate()));
+ passport.serializeUser(User.serializeUser());
+ passport.deserializeUser(User.deserializeUser());
 
 
 // view engine setup
@@ -35,8 +44,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-app.use(express.static(path.join(__dirname, '../client')));
-app.use(express.static(path.join(__dirname, '../node_modules')));
+//Configuire Express Session
+ app.use(
+     session({
+         secret: DBConfig.SessionSecret,
+         resave: false,
+         saveUninitialized: false,
+     }))
+ //Initialize Flash and Passport
+ app.use(flash())
+ app.use(passport.initialize());
+ app.use(passport.session());
+
+ //Implement Authentication Strategy
+ passport.use(User.createStrategy())
+ passport.serializeUser(User.serializeUser())
+ passport.deserializeUser(User.deserializeUser())
+
+ app.use(express.static(path.join(__dirname, '../../client')));
+app.use(express.static(path.join(__dirname, '../../node_modules')));
 
 
 app.use('/', indexRouter);
